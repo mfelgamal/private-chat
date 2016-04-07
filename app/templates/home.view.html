@@ -1,0 +1,100 @@
+<!-- <h1>Hi {{user.username}}!</h1>
+<p>You're logged in!!</p>
+<h3>All registered users:</h3>
+<ul>
+    <li ng-repeat="user in allUsers">
+        {{user.username}} ({{user.name}} {{user.email}})
+        - <a href="#" ng-click="deleteUser(user.id)">Delete</a>
+    </li>
+</ul>
+<p>&nbsp;</p>
+<p><a href="#/login" class="btn btn-primary">Logout</a></p>
+
+ -->
+<style type="text/css">
+.selected-user {
+  background-color: #C0C0C0;
+}
+
+.chat-box {
+  height: 400px;
+  overflow: auto;
+}
+</style>
+<div class="container">
+  <div class="row " style="padding-top:40px;">
+    <p><a ng-click="logout()" class="btn btn-primary">Logout</a></p>
+    <h3 class="text-center">Hi {{user.username}}!! </h3>
+    <br />
+    <br />
+    <div class="col-md-8">
+      <div class="panel panel-info" ng-show="showChat">
+        <div class="panel-heading">
+          Chatting with {{chatWith.username}}
+        </div>
+        <div class="chat-box">
+          <ul id="messages" class="media-list" ng-repeat="message in messages track by $index">
+            <li class="media">
+              <div class="media-body">
+                <div class="media">
+                  <a class="pull-left" href="#">
+                    <img class="media-object img-circle " src="assets/img/user1.png" />
+                  </a>
+                  <div class="media-body">
+                    <div ng-if="message.kind=='file'"><img ng-src="{{message.content}}" style="width: 300px; height: 300px" /></div>
+                    <div ng-if="message.kind=='text'">
+                      <span>{{message.content}}</span>
+                    </div>
+                    <div><small class="text-muted">{{message.sender_username}} | {{message.created}}</small></div>
+                    <br />
+                    <hr />
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="panel-footer">
+          <div class="input-group">
+            <input type="text" id="m" ng-model="msg" class="form-control" placeholder="Enter Message" />
+            <span class="input-group-btn">
+              <button class="btn btn-info" id="send" type="button" ng-click="sendMassege()">SEND</button>
+            </span>
+          </div>
+          <input type="file" id="siofu_input" />
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="panel panel-primary">
+        <div class="panel-heading">
+          FRIENDS
+        </div>
+        <span ng-if="errorMessage" class="alert alert-danger">
+              <span>{{errorMessage}}</span>
+        </span>
+        <div class="input-group">
+          <input class="form-control" ng-model="username" placeholder="Type 'username'" type="text">
+          <div ng-click="addFriend(username)" class="input-group-addon">Add</div>
+        </div>
+        <div class="panel-body" ng-init="hover=false">
+          <ul class="media-list" ng-repeat="user in friends">
+            <li class="media" ng-click="makePrivateChat(user)" ng-class="myclass" ng-mouseenter="myclass='selected-user'" ng-mouseleave="myclass=''">
+              <div class="media-body">
+                <div class="media">
+                  <a class="pull-left">
+                    <img class="media-object img-circle" style="max-height:40px;" src="assets/img/user1.png" />
+                  </a>
+                  <div>
+                    <h5>{{user.username}} |   <span ng-if="user.status" class="label label-success">Active</span>
+                                                    <span ng-if="!user.status" class="label label-default">Inactive</span> </h5>
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
