@@ -3,12 +3,13 @@
 This is the source code for a very simple private chat example
 
 
-## Prerequisite
-install nodeJS version >=v5.2.0
-And mongodb version >=2.6.12
+##Requirements
+-NodeJS  v5.2.0 or later
+-MongoDB 2.6.12 or later
+-Bower
 
 
-Following instructions below to run this application.
+Follow instructions below to run this application.
 
 ```shell
 npm install

@@ -28,8 +28,8 @@
       return $http.get('/api/friends/' + id).then(handleSuccess, handleError('Error getting all friends'));
     }
 
-    function AddFriend(first_user_id, second_user_id) {
-      return $http.post('/api/users/add_friend/', { from: first_user_id, to: second_user_id }).then(handleSuccess, handleError('Error creating relation'));
+    function AddFriend(first_user, second_user) {
+      return $http.post('/api/users/add_friend/', { from: first_user, to: second_user }).then(handleSuccess, handleError('Error creating relation'));
     }
 
     function GetById(id) {

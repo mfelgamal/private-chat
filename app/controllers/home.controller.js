@@ -5,9 +5,9 @@
     .module('app')
     .controller('HomeController', HomeController);
 
-  HomeController.$inject = ['$location', 'UserService', '$rootScope', '$scope', 'mySocket'];
+  HomeController.$inject = ['$window', '$route', '$location', 'UserService', '$rootScope', '$scope', 'mySocket'];
 
-  function HomeController($location, UserService, $rootScope, $scope, mySocket) {
+  function HomeController($window, $route, $location, UserService, $rootScope, $scope, mySocket) {
 
     $scope.showChat = false
     $scope.user = null;
@@ -40,6 +40,7 @@
       UserService.GetByUsername($rootScope.globals.currentUser.username)
         .then(function(data) {
           $scope.user = data.user;
+          mySocket.connect()
           mySocket.emit('login', $scope.user);
 
         });
@@ -60,11 +61,13 @@
     }
 
     $scope.sendMassege = function() {
+      if (!$scope.msg) return
       mySocket.emit('chat message', { content: $scope.msg, from: $scope.user._id, sender_username: $scope.user.username, to: $scope.chatWith._id, room: $scope.room, created: new Date() })
       $scope.msg = ''
     }
 
     $scope.makePrivateChat = function(user) {
+
       $scope.chatWith = user
       if (!user) {
         $scope.showChat = false
@@ -100,14 +103,13 @@
         .then(function(data) {
           if (!data.success) $scope.errorMessage = data.message
           else {
-
-            UserService.AddFriend($scope.user._id, data.user._id)
+            UserService.AddFriend($scope.user, data.user)
               .then(function(relation) {
                 if (!relation.success)
                   $scope.errorMessage = relation.message
                 else {
                   $scope.errorMessage = ''
-                  $scope.friends.push(data.user);
+
                 }
               });
           }
@@ -115,8 +117,10 @@
     }
 
     $scope.logout = function() {
-      mySocket.emit('logout', $rootScope.globals.currentUser.username);
+      socket.disconnect();
+      mySocket.disconnect();
       $location.path('#/login');
+      window.location.reload()
     }
 
 
@@ -147,6 +151,10 @@
     })
     mySocket.on('reciever private messages', function(data) {
       allPrivateChats.push(data)
+    })
+
+    mySocket.on('new friend', function(data) {
+      $scope.friends.push(data);
     })
 
 

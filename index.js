@@ -7,13 +7,21 @@ var async = require('async');
 var bodyParser = require('body-parser')
 var models = require('./create-models');
 var siofu = require("socketio-file-upload");
+var fs = require('fs');
 
+var privatechat = []
+var onlineUsers = {}
+var sockets = {}
 
 var User = models.user;
 var Chat = models.chat
 var Friendship = models.friendship
 
+var dir = __dirname + '/app/files';
 
+if (!fs.existsSync(dir)) {
+  fs.mkdirSync(dir);
+}
 
 app.use(bodyParser.json())
 
@@ -30,8 +38,14 @@ app.get('/', function(req, res) {
 app.post('/api/authenticate', function(req, res) {
 
   User.findOne({ username: req.body.username }, function(err, user) {
-    if (err) res.json({ success: false, message: 'Username or password are incorrect' });
-    // test a matching password
+    if (err) {
+      res.json({ success: false, message: 'Username or password are incorrect' });
+      return
+    }
+    if (!user) {
+      res.json({ success: false, message: 'Username or password are incorrect' });
+      return
+    } // test a matching password
     user.comparePassword(req.body.password, function(err, isMatch) {
       if (err) res.json({ success: false, message: 'Username or password are incorrect' });
       if (isMatch)
@@ -104,8 +118,10 @@ app.get('/api/users/:id', function(req, res) {
 
 // Add relation between two users
 app.post('/api/users/add_friend', function(req, res) {
-  var from_id = req.body.from
-  var to_id = req.body.to
+  var from = req.body.from
+  var to = req.body.to
+  var from_id = from._id
+  var to_id = to._id
 
   if (from_id == to_id) res.json({ success: false, message: "Error" })
 
@@ -115,7 +131,19 @@ app.post('/api/users/add_friend', function(req, res) {
         if (!rs2) {
           var friends_relation = new Friendship({ first_user: from_id, second_user: to_id })
           friends_relation.save(function(err) {
-            if (!err) res.json({ success: true })
+            if (!err) {
+              var toUserOnline = false
+              if (sockets[to.username]) {
+                sockets[to.username].emit('new friend', { _id: from._id, username: from.username, status: true })
+                sockets[to.username].emit('online users', onlineUsers);
+                toUserOnline = true
+              }
+              if (sockets[from.username]) {
+                sockets[from.username].emit('new friend', { _id: to._id, username: to.username, status: toUserOnline })
+                sockets[from.username].emit('online users', onlineUsers);
+              }
+
+            }
           })
         } else res.json({ success: false, message: "Already friends" })
       })
@@ -125,12 +153,9 @@ app.post('/api/users/add_friend', function(req, res) {
 });
 
 
-var privatechat = []
-var onlineUsers = {}
-var sockets = {}
 
-io.on('connection', function(socket) {
 
+io.sockets.on('connection', function(socket) {
 
   var uploader = new siofu();
   uploader.dir = __dirname + '/app/files'; // directory for stroring files
@@ -140,7 +165,7 @@ io.on('connection', function(socket) {
   uploader.on("saved", function(event) {
     var msg = event.file.meta.msg;
     var path = event.file.pathName
-    // stotr path in content
+      // stotr path in content
     msg.content = '/app/files/' + path.substring(path.lastIndexOf("/") + 1, path.length);
     msg.kind = 'file'
     var room = msg.room
@@ -173,15 +198,13 @@ io.on('connection', function(socket) {
 
     var username = user.username
     if (sockets[username]) return
-
     sockets[username] = socket
     onlineUsers[username] = user
       // we store the username in the socket session for this client
     socket.username = username;
-      // echo globally (all clients) that a person has connected
+    // echo globally (all clients) that a person has connected
     io.emit('online users', onlineUsers);
   });
-
 
   // when user connects with another user to first time.
   socket.on('new private', function(data) {
@@ -219,6 +242,7 @@ io.on('connection', function(socket) {
   })
 
 
+  // recieve message
   socket.on('chat message', function(msg) {
 
     msg.kind = 'text'
@@ -232,27 +256,27 @@ io.on('connection', function(socket) {
 
       }
     }
+
     var chat = new Chat(msg)
+
     chat.save(function(err, msgr) {
       if (sockets[pChat.from.username])
         sockets[pChat.from.username].emit('chat message', msgr)
       if (sockets[pChat.to.username])
         sockets[pChat.to.username].emit('chat message', msgr)
+
     })
   });
 
-  socket.on('logout', function(data) {
-    if (!sockets[socket.username]) return
-    delete sockets[socket.username]
-    delete onlineUsers[socket.username]
-    io.emit('online users', onlineUsers)
-  })
 
   socket.on('disconnect', function(data) {
     if (!sockets[socket.username]) return
+
     delete sockets[socket.username]
     delete onlineUsers[socket.username]
+
     io.emit('online users', onlineUsers)
+    socket.disconnect()
   })
 });
 
